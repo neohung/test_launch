@@ -13,8 +13,8 @@ MAKETXT  = srec_cat
 READELF  = msp430-readelf
 CP       = cp -p
 MV       = mv
-#RM       = rm -f
-RM = del /Q
+RM       = rm -f
+#RM = del /Q
 INCLUDES = -IC:\SysGCC\msp430-elf\include
 #######################################################################################
 CFLAGS   = -mmcu=$(MCU) -g -Os -Wall -Wunused $(INCLUDES)   
