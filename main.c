@@ -4,6 +4,7 @@
 
 #include "msp430_uart.h"
 
+#include "INA219.h"
 void Measure_REF(unsigned int chan, unsigned int ref);
 void Measure(unsigned int chan);
 
@@ -56,8 +57,9 @@ void main(void)
 //          +--|Vss SCL|<-+------|P1.6/UCB0SCL   P1.0|---> LED
 //         \|/  -------          |                   |
 //
+INA219_begin(INA219_ADDRESS);
 
-  init_I2C();
+  //init_I2C();
 //Send I2C TX
   while (1)
   {

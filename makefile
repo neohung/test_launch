@@ -1,5 +1,5 @@
 TARGET = neo
-SOURCES = main.c msp430_uart.c
+SOURCES = main.c msp430_uart.c pin_map.o soft_i2c.o INA219.o
 OBJECTS = $(SOURCES:.c=.o)
 
 MCU=msp430g2553
