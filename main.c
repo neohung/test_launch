@@ -3,13 +3,16 @@
 #include "stdbool.h"
 
 #include "msp430_uart.h"
+#include "msp430_adc.h"
 
 #include "INA219.h"
+
+bool          ADCDone;             // ADC Done flag
+unsigned int  ADCValue = 0;                // Measured ADC Value
+
 void Measure_REF(unsigned int chan, unsigned int ref);
 void Measure(unsigned int chan);
 
-bool          ADCDone;             // ADC Done flag
-unsigned int    ADCValue;                // Measured ADC Value
 void uart_rx(char data);
 
 unsigned char RXData;
@@ -36,10 +39,45 @@ void init_I2C(void) {
 void main(void)
 {
  WDTCTL = WDTPW + WDTHOLD; // Stop WDT
-
+ BCSCTL1 = CALBC1_1MHZ; // Set DCO to 1MHz
+ DCOCTL = CALDCO_1MHZ; // Set DCO to 1MHz
+ 
  P1DIR |= BIT0; // Set the LEDs on P1.0, P1.6 as outputs
  //P1OUT = BIT0; // Set P1.0
  uart_init(uart_rx);
+ adc_port1_3_init(&ADCValue);
+ __enable_interrupt();
+ while(1)
+ {
+	__delay_cycles(100000);				// Wait for ADC Ref to settle
+	ADCDone = false;                         // Sets flag for main loop.
+	adc_start();                		// Sampling and conversion start
+	__bis_SR_register(CPUOFF + GIE);	// Low Power Mode 0 with interrupts enabled
+	//ADCValue = ADCValue * 0.00293;
+    if (ADCValue == 1023){
+		char tmp;
+		tmp = 0xAA;
+		UARTSendArray(&tmp,1);
+		tmp = 0xFF;
+		UARTSendArray(&tmp,1);
+		UARTSendArray(&ADCValue,2);
+		tmp = 0xFF;
+		UARTSendArray(&tmp,1);
+		tmp = 0xAA;
+		UARTSendArray(&tmp,1);	
+		P1DIR |= BIT0;
+	}else{
+		P1DIR &= ~BIT0;
+	}
+	if (ADCValue == 0){
+		adc_stop();
+		__bis_SR_register(CPUOFF + GIE);
+	}
+	
+	//UARTSendArray((ADCValue >> 8)& 0x00FF,1);
+ }
+
+ 
  //LPM0_bits
  //
   TA0CTL|=TACLR+TAIE;  //开启中断并清零
@@ -100,6 +138,8 @@ while(1)
 */
 }
 
+
+
 //For I2C_TX
  __attribute__((interrupt(USCIAB0TX_VECTOR)))
 void USCIAB0TX_ISR(void)
@@ -151,17 +191,6 @@ P1OUT ^= BIT0;
 //__bic_SR_register_on_exit(CPUOFF);
 // Enable CPU so the main while loop continues
 
-}
-
-/***********************************************************************************
-* ADC interrupt routine. Pulls CPU out of sleep mode for the main loop.
-************************************************************************************/
-__attribute__((interrupt(ADC10_VECTOR)))
-void ADC10_ISR (void)
-{
-    ADCValue = ADC10MEM;                    // Saves measured value.
-    ADCDone = true;                         // Sets flag for main loop.
-    //__bic_SR_register_on_exit(CPUOFF);// Enable CPU so the main while loop continues
 }
 
 
