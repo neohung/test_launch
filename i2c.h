@@ -1,10 +1,15 @@
 #ifndef __I2C_H__
 #define __I2C_H__
 
+
 typedef unsigned char uint8_t;
 typedef unsigned int uint16_t;
 typedef unsigned long uint32_t;
 typedef unsigned long long uint64_t;
+typedef unsigned int size_t;
+
+#define I2C_READ 1 
+#define I2C_WRITE 0 
 
 #define BUFFER_LENGTH 16
 //#define CPU_F 		((double) 16000000.0)//CPU Frequency

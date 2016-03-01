@@ -129,7 +129,7 @@ void SoftwareWire_begin() {
 } 
 
 
-bool SoftwareWire_writeI2C(uint8_t data) { 
+uint8_t SoftwareWire_writeI2C(uint8_t data) { 
      pinMode(_pinSDA, OUTPUT); 
 	 uint8_t i;
      for (i=0; i < 8; ++i ){    
@@ -157,6 +157,36 @@ bool SoftwareWire_writeI2C(uint8_t data) {
      delayI2Cus(DELAY_FULL); 
      return result; 
  } 
+ 
+size_t SoftwareWire_write_with_transmitting(uint8_t data) 
+{ 
+     if (transmitting){ 
+         if (txBufferLength >= BUFFER_LENGTH) { 
+             return 0; 
+        } 
+         txBuffer[txBufferIndex] = data; 
+        ++txBufferIndex; 
+         txBufferLength = txBufferIndex; 
+    } else { 
+         SoftwareWire_writeI2C(data); 
+     } 
+     return 1; 
+ } 
+
+size_t SoftwareWire_write_Data(const uint8_t *data, size_t length) 
+{ 
+    if (transmitting) { 
+	    //transmitting=1表示transmitting
+		size_t i;
+        for (i = 0; i < length; ++i) SoftwareWire_write_with_transmitting(data[i]); 
+    } else { 
+	 //transmitting=0表示直接寫入
+	 size_t i;
+    	for (i = 0; i < length; ++i) SoftwareWire_writeI2C(data[i]); 
+    } 
+    return length; 
+} 
+
 
 uint8_t SoftwareWire_readI2C(uint8_t last) { 
     uint8_t data = 0;
@@ -192,8 +222,17 @@ uint8_t SoftwareWire_readI2C(uint8_t last) {
      delayI2Cus(DELAY_LONG); 
      return data; 
  } 
-
  
+//return uint8_t?
+void SoftwareWire_readI2C_Data(uint8_t* data, uint8_t length) 
+{ 
+     if (length > 1) { 
+         while (--length) *data++= SoftwareWire_readI2C(false);  //拉Lo表示Ack
+     } 
+     *data = SoftwareWire_readI2C(true); //拉Hi表示NAck即結束
+} 
+
+
 int SoftwareWire_read(void) 
 { 
      int value = -1; 
@@ -205,12 +244,60 @@ int SoftwareWire_read(void)
 } 
 
  
-bool SoftwareWire_startI2C(uint8_t address, uint8_t RW) { 
+uint8_t SoftwareWire_startI2C(uint8_t address, uint8_t RW) { 
      pinMode(_pinSDA, OUTPUT); 
-	 //Data Pin先Lo , 這時Clock Hi表示Start Condition
+	 //Clock Hi的過程中Data Pin拉Lo , 表示Start Condition
      digitalWrite(_pinSDA, LOW); 
 	 //Clock拉Lo, Clock下次拉Hi時表示開始送訊號
      digitalWrite(_pinSCL, LOW); 
      delayI2Cus(DELAY_FULL); 
      return SoftwareWire_writeI2C((address << 1) + RW); 
  } 
+
+bool SoftwareWire_restartI2C(uint8_t address, uint8_t RW) { 
+     digitalWrite(_pinSDA, HIGH); 
+     digitalWrite(_pinSCL, HIGH); 
+     delayI2Cus(DELAY_FULL); 
+     return SoftwareWire_startI2C(address, RW); 
+} 
+
+ void SoftwareWire_stopI2C(void) { 
+     pinMode(_pinSDA, OUTPUT); 
+     digitalWrite(_pinSDA, LOW); 
+     delayI2Cus(DELAY_FULL); 
+	 //Clock Hi的過程中Data Pin拉Hi , 表示Stop Condition
+     digitalWrite(_pinSCL, HIGH); 
+     delayI2Cus(DELAY_FULL); 
+     digitalWrite(_pinSDA, HIGH); 
+     delayI2Cus(DELAY_FULL); 
+} 
+
+
+ void SoftwareWire_beginTransmission(uint8_t address) 
+{ 
+     transmitting = 1; 
+     txAddress = address; 
+     txBufferIndex = 0; 
+     txBufferLength = 0; 
+} 
+
+uint8_t SoftwareWire_writeI2C_data(uint8_t* data, size_t length) 
+ { 
+     uint8_t result = 0;
+     uint8_t i;	 
+     for (i=0; i < length; i++) result = SoftwareWire_writeI2C(data[i]); 
+     return result; 
+ } 
+
+
+uint8_t SoftwareWire_endTransmission(void) 
+{ 
+     uint8_t result = 0; 
+     SoftwareWire_startI2C(txAddress, I2C_WRITE); 
+	 result += SoftwareWire_writeI2C_data(txBuffer, txBufferLength); 
+     SoftwareWire_stopI2C(); 
+     txBufferIndex = 0; 
+     txBufferLength = 0; 
+     transmitting = 0; 
+     return result; 
+} 
