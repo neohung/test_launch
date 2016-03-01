@@ -1,7 +1,7 @@
 
 #include "i2c.h"
-#include "msp430g2553.h"
-#include "stdbool.h"
+
+
 
 static uint8_t _pinSDA;
 static uint8_t _pinSCL;

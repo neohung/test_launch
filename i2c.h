@@ -1,6 +1,8 @@
 #ifndef __I2C_H__
 #define __I2C_H__
 
+#include "stdbool.h"
+#include "msp430g2553.h"
 
 typedef unsigned char uint8_t;
 typedef unsigned int uint16_t;
@@ -46,7 +48,21 @@ typedef enum {
 	LOW = 0x00
 }PIN_MODE;
 
+void SoftwareWire(uint8_t pinSDA, uint8_t pinSCL);
+void SoftwareWire_begin();
+uint8_t SoftwareWire_writeI2C(uint8_t data);
+size_t SoftwareWire_write_with_transmitting(uint8_t data);
+size_t SoftwareWire_write_Data(const uint8_t *data, size_t length) ;
+uint8_t SoftwareWire_readI2C(uint8_t last);
+void SoftwareWire_readI2C_Data(uint8_t* data, uint8_t length) ;
+int SoftwareWire_read(void) ;
+uint8_t SoftwareWire_startI2C(uint8_t address, uint8_t RW);
+bool SoftwareWire_restartI2C(uint8_t address, uint8_t RW);
 
+void SoftwareWire_stopI2C(void);
+void SoftwareWire_beginTransmission(uint8_t address) ;
+uint8_t SoftwareWire_writeI2C_data(uint8_t* data, size_t length) ;
+uint8_t SoftwareWire_endTransmission(void);
 
 #endif
 
