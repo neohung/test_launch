@@ -22,24 +22,9 @@ typedef unsigned int size_t;
 #define TICKS_PER_MS (F_CPU / 1000) 
 #define TICKS_PER_US (TICKS_PER_MS / 1000) 
 
-const uint8_t DELAY_LONG = 32; 
-const uint8_t DELAY_FULL = 8; 
-const uint8_t DELAY_HALF = 4; 
-const uint8_t DELAY_PART = 2; 
-
-
 //BCSCTL1 = CALBC1_16MHZ;
 //DCOCTL = CALDCO_16MHZ;
 
-
-uint8_t rxBuffer[BUFFER_LENGTH]; 
-uint8_t rxBufferIndex = 0; 
-uint8_t rxBufferLength = 0; 
-uint8_t txAddress = 0; 
-uint8_t txBuffer[BUFFER_LENGTH]; 
-uint8_t txBufferIndex = 0; 
-uint8_t txBufferLength = 0; 
-uint8_t transmitting = 0; 
 
 typedef enum {
 	INPUT = 0x00,
@@ -63,6 +48,6 @@ void SoftwareWire_stopI2C(void);
 void SoftwareWire_beginTransmission(uint8_t address) ;
 uint8_t SoftwareWire_writeI2C_data(uint8_t* data, size_t length) ;
 uint8_t SoftwareWire_endTransmission(void);
-
+uint8_t SoftwareWire_requestFrom(uint8_t address, uint8_t length);
 #endif
 

@@ -2,6 +2,19 @@
 #include "i2c.h"
 
 
+uint8_t rxBuffer[BUFFER_LENGTH]; 
+uint8_t rxBufferIndex = 0; 
+uint8_t rxBufferLength = 0; 
+uint8_t txAddress = 0; 
+uint8_t txBuffer[BUFFER_LENGTH]; 
+uint8_t txBufferIndex = 0; 
+uint8_t txBufferLength = 0; 
+uint8_t transmitting = 0; 
+
+const uint8_t DELAY_LONG = 32; 
+const uint8_t DELAY_FULL = 8; 
+const uint8_t DELAY_HALF = 4; 
+const uint8_t DELAY_PART = 2; 
 
 static uint8_t _pinSDA;
 static uint8_t _pinSCL;
@@ -301,3 +314,65 @@ uint8_t SoftwareWire_endTransmission(void)
      transmitting = 0; 
      return result; 
 } 
+
+uint8_t SoftwareWire_readI2C_request(uint8_t last, bool first) {
+    uint8_t data = 0;
+    digitalWrite(_pinSDA, LOW);
+    if (!first) 
+    {
+      delayI2Cus(DELAY_LONG);
+      pinMode(_pinSDA, INPUT);
+      delayI2Cus(DELAY_HALF);
+    }
+	uint8_t i;
+    for (i = 0; i < 8; i++) {
+      if (first && i==0) {
+        data <<= 1;
+        if (digitalRead(_pinSDA)) data |= 1;
+        digitalWrite(_pinSCL, LOW);
+        pinMode(_pinSCL, OUTPUT);
+        delayI2Cus(DELAY_HALF);
+      }
+      else
+      {
+        data <<= 1;
+        digitalWrite(_pinSCL, HIGH);
+        delayI2Cus(DELAY_PART);
+        if (digitalRead(_pinSDA)) data |= 1;
+        delayI2Cus(DELAY_PART);
+        digitalWrite(_pinSCL, LOW);
+        delayI2Cus(DELAY_HALF);
+      }
+    }
+    pinMode(_pinSDA, OUTPUT);
+    digitalWrite(_pinSDA, last);
+    digitalWrite(_pinSCL, HIGH);
+    delayI2Cus(DELAY_HALF);
+    digitalWrite(_pinSCL, LOW);
+    digitalWrite(_pinSDA, LOW);
+    delayI2Cus(DELAY_LONG);
+    return data;
+}
+
+uint8_t SoftwareWire_requestFrom(uint8_t address, uint8_t length)
+{
+    bool first = true;
+    if (length > BUFFER_LENGTH) length = BUFFER_LENGTH;
+    SoftwareWire_startI2C(address, I2C_READ);
+    pinMode(_pinSCL, INPUT);
+    pinMode(_pinSDA, INPUT);
+    delayI2Cus(DELAY_FULL);
+    while (digitalRead(_pinSCL)==LOW);
+    if (length > 1) {
+		uint8_t i;
+        for (i=0; i<length-1; i++) {
+          rxBuffer[i] = SoftwareWire_readI2C_request(false,first);
+          first = false;
+        }
+    }
+    rxBuffer[length-1] = SoftwareWire_readI2C_request(true,first);
+    SoftwareWire_stopI2C();
+    rxBufferIndex = 0;
+    rxBufferLength = length;
+    return length;
+}
